@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+
+    annotator-front-end:
+        build: ./front-end/
+        image: annotator-front-end
+        container_name: annotator-front-end
+        restart: always
+        environment:
+            - REACT_APP_BACKEND_IP_ADDRESS=xxx.xx.xxx.xxx
+            - REACT_APP_BACKEND_PORT=8012
+        ports:
+            - "3001:3000"
+        volumes:
+            - ./front-end/:/home/annotator-front-end/
+        entrypoint: /home/annotator-front-end/entrypoint.sh
+        command: npm start
+        # tty: true
+
+    annotator-back-end:
+        build: ./back-end/
+        image: annotator-back-end
+        container_name: annotator-back-end
+        restart: always
+        depends_on:
+            - annotator-db
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_DB=people
+            - DATA_DIR=/home/data/Images/
+            - CONFIG_FILE=/home/annotator-back-end/cfg/people_detection.json
+        ports:
+            - "8012:8000"
+        volumes:
+            - ./back-end/:/home/annotator-back-end/
+            - ../crowdhuman/:/home/data/Images/:ro
+        command: uvicorn main:app --reload --host=0.0.0.0
+        # tty: true
+
+    annotator-db:
+        image: postgres:latest
+        container_name: annotator-db
+        restart: always
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_DB=people
+        ports:
+            - "5433:5432"
+        volumes:
+            - ./db/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+            # - postgres-volume:/var/lib/postgresql
+        # tty: true
+
+# volumes:
+
+#     postgres-volume:
